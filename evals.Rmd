@@ -1,0 +1,186 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Core classes in person
+
+```{r}
+#Clean the data
+library(readxl)
+library(tidyverse)
+library(stringi)
+library(stringr)
+library(openxlsx)
+evals <- read_excel("evals.xlsx")
+pell <- read_excel("evals.xlsx", sheet = "Pell")
+core <- read_excel("evals.xlsx", sheet = "Core")
+faculty <- read_excel("~/faculty.xlsx")
+evals$Pell<-ifelse(evals$ID_NUM %in% pell$ID == TRUE, "Yes","No")
+evals$Section <- stri_sub(evals$Class, -2)
+remove<-c("CC", "CD", "CO", "CV", "DQ", "FF", "HE", "JC", "MA", "MR", "MB", "TR")
+on.campus<-subset(evals, !Section %in% remove)
+colnames(on.campus)<-c("ID", "Code", "Grade", "Instructor", "Age", "Ethnicity", "Gender", "Division", "Pell", "Section")
+on.campus$Class<-str_squish(on.campus$Code)
+on.campus$Class <- substring(on.campus$Class, 1, nchar(on.campus$Class)-3)
+on.campus$Class<-sub("^6+","", on.campus$Code)
+on.campus$Prefix<-substring(on.campus$Class, 1,3)
+on.campus$Core<-ifelse(on.campus$Class %in% core$`Core Classes` == TRUE, "Core","Not Core")
+remove<-c("AU", "INC", "NULL")
+on.campus<-subset(on.campus, !Grade %in% remove)
+complete<-c("A", "B", "C", "D", "P", "F")
+on.campus$Completed<-ifelse(on.campus$Grade %in% complete, 1, 0)
+pass<-c("A", "B", "C", "P")
+on.campus$Passed<-ifelse(on.campus$Grade %in% pass, 1,0)
+on.campus$Modality<-substr(on.campus$Section, 1,1)
+on.campus$Modality[on.campus$Modality !="V"]<-"In Person"
+on.campus$Modality[on.campus$Modality =="V"]<-"Online"
+on.campus$Ethnicity[on.campus$Ethnicity == "Asian"]<-"Other"
+on.campus$Ethnicity[on.campus$Ethnicity == "American Indian or Alaska Native"]<-"Other"
+on.campus$Ethnicity[on.campus$Ethnicity == "Native Hawaiian or Other Pacific Islander"]<-"Other"
+on.campus$Ethnicity[on.campus$Ethnicity == "Nonresident Alien"]<-"Other"
+on.campus$Ethnicity[on.campus$Ethnicity == "Two or more races"]<-"Other"
+on.campus$Ethnicity[on.campus$Ethnicity == "Hispanics of any race"]<-"Hispanic"
+on.campus$Ethnicity[on.campus$Ethnicity == "Black or African American"]<-"Black"
+on.campus$Over25<-ifelse(on.campus$Age>24, "Yes","No")
+on.campus$Minority<-ifelse(on.campus$Ethnicity == "White" | on.campus$Ethnicity == "Unknown", "No", "Yes")
+```
+
+
+```{r}
+total<-on.campus %>% group_by(Class, Instructor, Prefix, Division) %>% select(Class, Instructor, Division, Prefix, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed=Passed/n, Percent.Completed=Completed/n)
+#Gender
+gender<-on.campus  %>% group_by(Class, Instructor, Gender, Prefix) %>% select (Class, Instructor, Prefix, Gender, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+female<- gender%>% filter(Gender == "F")
+male<-gender%>%filter(Gender =="M")
+#Minorities
+ethnicity<-on.campus %>% group_by(Class, Instructor, Ethnicity, Prefix) %>% select (Class, Instructor, Prefix, Ethnicity, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+white<-ethnicity %>%filter(Ethnicity =="White")
+black<-ethnicity%>%filter(Ethnicity =="Black")
+
+#Other Minority Combined
+other.combined<-on.campus  %>% group_by(Class, Instructor, Minority, Prefix) %>% select (Class, Instructor, Prefix, Minority, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+other<-other.combined%>%filter(Minority == "Yes")
+#Pell Combined
+pell<-on.campus  %>% group_by(Class, Instructor, Pell, Prefix) %>% select (Class, Instructor, Prefix, Pell, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+pell.yes<-pell%>%filter(Pell=="Yes")
+pell.no<-pell%>%filter(Pell=="No")
+#Over 25
+age<-on.campus  %>% group_by(Class, Instructor, Over25, Prefix) %>% select (Class, Instructor, Prefix, Over25, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+#Online
+online<-on.campus %>% filter(Modality == "Online") %>% group_by(Class, Instructor, Prefix) %>% select(Class, Instructor, Prefix, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed=Passed/n, Percent.Completed=Completed/n)
+age.o<-age%>%filter(Over25=="Yes")
+age.u<-age%>%filter(Over25=="No")
+total<-total[,c(1:5, 8:9)]
+female<-female[,c(1,5,8:9)]
+male<-male[,c(1,5,8:9)]
+white<-white[,c(1,5,8:9)]
+black<-black[,c(1,5,8:9)]
+other<-other[,c(1,5,8:9)]
+pell.yes<-pell.yes[,c(1,5,8:9)]
+pell.no<-pell.no[,c(1,5,8:9)]
+age.o<-age.o[,c(1,5,8:9)]
+age.u<-age.u[,c(1,5,8:9)]
+online<-online[,c(1,4, 7:8)]
+colnames(total)<-c("Class", "Instructor", "Prefix", "Division", "Students", "Percent Passed", "Percent Completed")
+colnames(female)<-c("Class", "Female Students", "Female Percent Passed", "Female Percent Completed")
+colnames(male)<-c("Class", "Male Students", "Male Percent Passed", "Male Percent Completed")
+colnames(white)<-c("Class","White Students", "White Percent Passed", "White Percent Completed")
+colnames(black)<-c("Class","Black Students", "Black Percent Passed", "Black Percent Completed")
+colnames(other)<-c("Class","Minoirty Students", "Minority Percent Passed", "Minority Percent Completed")
+colnames(pell.yes)<-c("Class","Pell Students", "Pell Percent Passed", "Pell Percent Completed")
+colnames(pell.no)<-c("Class", "No Pell Students", "No Pell Percent Passed", "No Pell Percent Completed")
+colnames(age.o)<-c("Class", "25 and Over Students", "25 and Over Percent Passed", "25 and Over Percent Completed")
+colnames(age.u)<-c("Class", "Under 25 Students", "Under 25 Percent Passed", "Under 25 Percent Completed")
+colnames(online)<-c("Class", "Online Students", "Online Passed", "Online Completed")
+```
+
+```{r}
+
+#Class Totals
+compare<-on.campus  %>% group_by(Prefix) %>% select (Prefix, Instructor, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+#Gender
+gender.compare<-on.campus %>%  group_by(Prefix, Gender) %>% select (Prefix, Instructor, Gender, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+#Minorities
+eth.compare<-on.campus %>% group_by(Prefix, Ethnicity) %>% select (Prefix, Instructor, Ethnicity, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+#Other Minority Combined
+other.compare<-on.campus %>% group_by(Prefix, Minority) %>% select (Prefix, Instructor, Minority, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+# Pell Combined
+pell.compare<-on.campus %>% group_by(Prefix, Pell) %>% select (Prefix, Instructor, Pell, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+#Over 25
+age.compare<-on.campus %>% group_by(Prefix, Over25) %>% select (Prefix, Instructor, Over25, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+female.compare<- gender.compare%>% filter(Gender == "F")
+male.compare<-gender.compare%>%filter(Gender =="M")
+white.compare<-eth.compare%>%filter(Ethnicity =="White")
+black.compare<-eth.compare%>%filter(Ethnicity =="Black")
+other.compare<-other.compare%>%filter(Minority == "Yes")
+pell.yes.compare<-pell.compare%>%filter(Pell=="Yes")
+pell.no.compare<-pell.compare%>%filter(Pell=="No")
+age.o.compare<-age.compare%>%filter(Over25=="Yes")
+age.u.compare<-age.compare%>%filter(Over25=="No")
+online.compare<-on.campus %>% filter(Modality == "Online") %>% group_by(Prefix, Modality) %>% select (Prefix, Instructor, Modality, Passed, Completed) %>% summarise(n=n(), Passed = sum(Passed), Completed=sum(Completed)) %>% mutate(Percent.Passed = Passed/n, Percent.Completed = Completed/n)
+compare<-compare[,c(1:2,5:6)]
+female.compare<-female.compare[,c(1,3,6:7)]
+male.compare<-male.compare[,c(1,3,6:7)]
+white.compare<-white.compare[,c(1,3,6:7)]
+black.compare<-black.compare[,c(1,3,6:7)]
+other.compare<-other.compare[,c(1,3,6:7)]
+pell.yes.compare<-pell.yes.compare[,c(1,3,6:7)]
+pell.no.compare<-pell.no.compare[,c(1,3,6:7)]
+age.o.compare<-age.o.compare[,c(1,3,6:7)]
+age.u.compare<-age.u.compare[,c(1,3,6:7)]
+online.compare<-online.compare[,c(1,3,6:7)]
+colnames(compare)<-c("Prefix", "Students Overall", "Percent Passed Overall", "Percent Completed Overall")
+colnames(female.compare)<-c("Prefix", "Female Students Overall", "Female Percent Passed Overall", "Female Percent Completed Overall")
+colnames(male.compare)<-c("Prefix",  "Male Students Overall", "Male Percent Passed Overall", "Male Percent Completed Overall")
+colnames(white.compare)<-c("Prefix", "White Students Overall", "White Percent Passed Overall", "White Percent Completed Overall")
+colnames(black.compare)<-c("Prefix", "Black Students Overall", "Black Percent Passed Overall", "Black Percent Completed Overall")
+colnames(other.compare)<-c("Prefix", "Minoirty Students Overall", "Minority Percent Passed Overall", "Minority Percent Completed Overall")
+colnames(pell.yes.compare)<-c("Prefix", "Pell Students Overall", "Pell Percent Passed Overall", "Pell Percent Completed Overall")
+colnames(pell.no.compare)<-c("Prefix", "No Pell Students Overall", "No Pell Percent Passed Overall", "No Pell Percent Completed Overall")
+colnames(age.o.compare)<-c("Prefix",  "25 and Over Students Overall", "25 and Over Percent Passed Overall", "25 and Over Percent Completed Overall")
+colnames(age.u.compare)<-c("Prefix",  "Under 25 Students Overall", "Under 25 Percent Passed Overall", "Under 25 Percent Completed Overall")
+colnames(online.compare)<-c("Prefix", "Online Students Overall", "Online Percent Passed Overall", "Online Percent Completed Overall")
+```
+
+```{r}
+#Number of Classes
+count<-on.campus %>%  group_by(Class, Instructor, Code) %>% select(Class, Instructor, Code)
+count<-distinct(count)
+classes.taught<-count %>% group_by(Class, Instructor) %>% count(Instructor)
+colnames(classes.taught)<-c("Class", "Instructor", "Classes Taught")
+summary.table<-left_join(total, classes.taught)
+summary.table<-left_join(summary.table, female)
+summary.table<-left_join(summary.table, male)
+summary.table<-left_join(summary.table, white)
+summary.table<-left_join(summary.table, black)
+summary.table<-left_join(summary.table, online)
+summary.table<-left_join(summary.table, other)
+summary.table<-left_join(summary.table, pell.yes)
+summary.table<-left_join(summary.table, pell.no)
+summary.table<-left_join(summary.table, age.o)
+summary.table<-left_join(summary.table, age.u)
+summary.table<-left_join(summary.table, compare)
+summary.table<-left_join(summary.table, female.compare)
+summary.table<-left_join(summary.table, male.compare)
+summary.table<-left_join(summary.table, white.compare)
+summary.table<-left_join(summary.table, black.compare)
+summary.table<-left_join(summary.table, online.compare)
+summary.table<-left_join(summary.table, other.compare)
+summary.table<-left_join(summary.table, pell.yes.compare)
+summary.table<-left_join(summary.table, pell.no.compare)
+summary.table<-left_join(summary.table, age.o.compare)
+summary.table<-left_join(summary.table, age.u.compare)
+summary.table[is.na(summary.table)]<-0
+summary.table<-summary.table %>% filter(Instructor %in% faculty$Name)
+```
+
+```{r}
+write.xlsx(summary.table, "fall22.xlsx")
+```
+
+```{r}
+#divisions<-split(summary.table, summary.table$Division)
+#write.xlsx(divisions, "divisions.xlsx")
+```
+

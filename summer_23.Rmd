@@ -1,0 +1,451 @@
+---
+title: "Registration Report Summer 2023"
+subtitle: ""
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+author: "Office of Institutional Effectiveness and Research"
+geometry: margin=1cm
+output:
+  pdf_document: default
+  
+  
+---
+
+```{r include=FALSE}
+library(readxl)
+library(tidyverse)
+library(kableExtra)
+library(stringi)
+library(stringr)
+library(chron)
+library(zoo)
+library(data.table)
+library(scales)
+pull <- read_excel("C://Users//jamesa-anderson//OneDrive - John A. Logan College//Documents//summer.xlsx")
+count <- read_excel("C://Users//jamesa-anderson//OneDrive - John A. Logan College//Documents//summer.xlsx", 
+    sheet = "head")
+pull$Section<-stri_sub(pull$Course, -2)
+pull$Course<-substr(pull$Course,1,nchar(pull$Course)-4)
+pull$Course<-gsub("\\s+"," ",pull$Course)
+pull$Division<-str_replace_all(pull$Division, c("AE$" = "Adult Education", "AH$" = "Allied Health", "AT$" = "Applied Technology", "HS$" = "Humanities and Social Science", "MB$" = "Business, Computer Science, and Math", "ND$" = "Nursing", "SC$" = "Life and Physical Science", "SI$" = "SICCM", "WD$" = "Workforce Development", "NULL" = "Independet Study"))
+pull$InstructionMode<-str_replace_all(pull$InstructionMode, c("CLAS$" = "Classroom", "HYB$" = "Hybrid", "OLA$" = "On-Line Anytime", "OLS$" = "On-Line Scheduled"))
+```
+
+```{r include=FALSE}
+dual <- read_excel("~/dual enrollment summer.xlsx")
+dual$Division<-str_replace_all(dual$Division, c("AE$" = "Adult Education", "AH$" = "Allied Health", "AT$" = "Applied Technology", "HS$" = "Humanities and Social Science", "MB$" = "Business, Computer Science, and Math", "ND$" = "Nursing", "SC$" = "Life and Physical Science", "SI$" = "SICCM", "WD$" = "Workforce Development"))
+dual.total<-dual %>% group_by(Division) %>% summarise('Dual Credit' = sum(Enrolled))
+sum(dual$Enrolled*dual$Hours)
+```
+# Division Totals
+
+```{r echo=FALSE}
+todays.date<-Sys.Date()
+table.1<-data.frame(length(unique(count$ID)), sum((pull$Enrolled+pull$Waitlist)*pull$CreditHours), sum((pull$Enrolled+pull$Waitlist)*pull$CreditHours)/15)
+table.1<-round(table.1, digits=2)
+colnames(table.1)<-c("Unduplicated Headcount", "Total Credit Hours", "FTE")
+kable(table.1, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Unduplicated Headcount, Total Hours, and FTE on ", todays.date, sep = " ")) %>%
+  kable_styling(font_size = 7, latex_options = c("hold_position", "repeat_header"))
+pull$PercentCap <-round((pull$Enrolled+pull$Waitlist)/pull$Capacity, 2)
+pull$PercentCap[!is.finite(pull$PercentCap)] <- 0
+average.mean<-round(mean(pull$Enrolled),0)
+total.enrolled<-round(sum(pull$Enrolled+pull$Waitlist),0)
+average.capacity<-round(mean(pull$Capacity),0)
+total.capacity<-round(sum(pull$Capacity),0)
+Total<-c("Total", scales::percent(total.enrolled/sum(pull$Capacity)), total.enrolled, average.mean, average.capacity)
+division.total<-pull %>% group_by(Division) %>% summarise(AverageCap = round(mean(PercentCap, na.rm=TRUE), 2), AverageCap=scales::percent(AverageCap) , TotalEnrolment = round(sum(Enrolled)), AverageEnrollment = round(mean(Enrolled)), AverageCapacity = round(mean(Capacity)))
+division.total<-rbind(division.total, Total)
+division.total<-merge(division.total, dual.total, by='Division', all=TRUE)
+division.total<-division.total %>% replace(is.na(.), 0)
+division.total<-rbind(division.total[1:7,], division.total[9,], division.total[8,])
+names(division.total)[length(names(division.total))]<-"Dual Credit"
+division.total$TotalEnrolment<-as.numeric(division.total$TotalEnrolment)-as.numeric(division.total$`Dual Credit`)
+row.names(division.total)<- NULL
+kable(division.total, row.names = FALSE, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Division Totals on", todays.date, sep = " ")) %>%
+  kable_styling(font_size = 7, latex_options = c("hold_position", "repeat_header"))
+pull.ggplot<-ggplot(pull, aes(x=Division, y=mean(Enrolled)))
+online<-pull %>% filter(substr(InstructionMode, 1, 1) == "O")
+inperson<-pull %>% filter(substr(InstructionMode, 1, 1) != "O")
+online.table<-c(mean(online$Enrolled+online$Waitlist), mean(online$Capacity), mean((online$Enrolled+online$Waitlist))/mean(online$Capacity, na.rm=TRUE))
+inperson.table<-c(mean(inperson$Enrolled+inperson$Waitlist), mean(inperson$Capacity), mean((inperson$Enrolled+inperson$Waitlist))/mean(inperson$Capacity, na.rm=TRUE))
+online.table[1:2]<-round(online.table[1:2], digit=0)
+inperson.table[1:2]<-round(inperson.table[1:2], digit=0)
+instructionmode.table<-rbind(inperson.table, online.table)
+rownames(instructionmode.table)<-c("In-Person", "Online")
+colnames(instructionmode.table)<-c("Average Enrolled", "Average Capacity", "Average Percent Capacity")
+instructionmode.table[,3]<-percent(instructionmode.table[,3])
+kable(instructionmode.table, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Average Enrollment, Average Capacity, and Average Percent Capacity for ", todays.date, sep = " ")) %>%
+  kable_styling(font_size = 7, latex_options = c("hold_position", "repeat_header"))
+todays.date<-format(todays.date, format="%B %d %Y")
+pull.ggplot + geom_col(fill="blue") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title="Students Enrolled in Divisions", subtitle=todays.date, x="Divisions", y="Students Enrolled in Class in Division")
+```
+
+
+
+
+
+\newpage
+
+\begin{landscape}
+\section{Adult Education}
+
+```{r echo=FALSE, comment=NA, paged.print=TRUE, results= "asis"}
+division.table<-pull %>% filter(Division == "Adult Education") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+ae.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Adult Education Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Adult Education for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Adult Education for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Adult Education for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Adult Education for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Adult Education for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Adult Education for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+
+
+
+\end{landscape}
+
+\newpage
+
+
+\begin{landscape}
+\section{Allied Health}
+```{r echo=FALSE, comment=NA, paged.print=TRUE, results = "asis"}
+division.table<-pull %>% filter(Division == "Allied Health") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+ah.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Allied Health Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Allied Health for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Allied Health for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Allied Health for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Allied Health for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Allied Health for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Allied Health for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+\newpage
+
+
+\begin{landscape}
+\section{Applied Technology}
+```{r echo=FALSE, comment=NA, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "Applied Technology") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+at.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Applied Technology Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Applied Technology for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Applied Technology for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Applied Technology for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Applied Technology for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Applied Technology for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Applied Technology for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+\newpage
+
+
+
+\begin{landscape}
+\section{Humanities and Social Science}
+```{r echo=FALSE, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "Humanities and Social Science") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+hs.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Humanities and Social Science Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Humanities and Social Science for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Humanities and Social Science for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Humanities and Social Science for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Humanities and Social Science for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Humanities and Social Science for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Humanities and Social Science for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+\newpage
+
+
+\begin{landscape}
+\section{Business, Computer Science, and Mathematics}
+```{r echo=FALSE, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "Business, Computer Science, and Math") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+mb.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Business, Computer Science, and Mathematics Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Business, Computer Science, and Mathematics for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Business, Computer Science, and Mathematics for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Business, Computer Science, and Mathematics for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Business, Computer Science, and Mathematics for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Business, Computer Science, and Mathematics for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Business, Computer Science, and Mathematics for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+\newpage
+
+
+
+\begin{landscape}
+\section{Nursing}
+```{r echo=FALSE, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "Nursing") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+nu.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Nursing Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Nursing for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Nursing for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Nursing for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Nursing for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Nursing for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Nursing for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+\newpage
+
+
+\begin{landscape}
+\section{Life and Physical Science}
+```{r echo=FALSE, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "Life and Physical Science") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+ps.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Life and Physical Science Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Life and Physical Science for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Life and Physical Science for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Life and Physical Science for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Life and Physical Science for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Life and Physical Science for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Life and Physical Science for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+\newpage
+
+\begin{landscape}
+\section{SICCM}
+```{r echo=FALSE, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "SICCM") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+si.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("SICCM Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("SICCM for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("SICCM for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("SICCM for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("SICCM for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("SICCM for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("SICCM for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+\newpage
+
+\begin{landscape}
+\section{Workforce Development}
+```{r echo=FALSE, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "Workforce Development") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+wd.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Workforce Development Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Workforce Development for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Workforce Development for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Workforce Development for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Workforce Development for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Workforce Development for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Workforce Development for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")} 
+```
+\end{landscape}
+
+\newpage
+
+\begin{landscape}
+\section{Independent Study}
+```{r echo=FALSE, paged.print=TRUE, comment=NA, results = "asis"}
+division.table<-pull %>% filter(Division == "Independent Study") %>% group_by(Course) %>% select(Course, Section, Term, InstructionMode, Instructor, ClassDay, StartDate, EndDate, Enrolled, Waitlist, Capacity, CreditHours, PercentCap) %>% arrange(Course, Section, desc(PercentCap)) %>% mutate(PercentCap, PercentCap=scales::percent(PercentCap))
+id.table<-division.table
+if(dim(division.table)[1] > 0){ 
+M3<-division.table %>% filter(Term == "M3")
+M5<-division.table %>% filter(Term == "M5")
+M6<-division.table %>% filter(Term == "M6")
+M7<-division.table %>% filter(Term == "M7")
+M9<-division.table %>% filter(Term == "M9")
+other<-division.table %>% filter(Term == "NULL")
+over<-division.table %>% group_by(Course) %>% select(Course, Enrolled, Capacity, CreditHours) %>% summarise(Total=sum(Enrolled), Average=sum(Enrolled), TotalCap=sum(Capacity), TotalPercentCap=scales::percent(Total/TotalCap))
+over[4][is.na(over[4])] <- 0
+print(kable(over, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Independent Study Class Totals on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M3, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Independent Study for M3 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M5, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Independent Study for M5 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M6, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Independent Study for M6 Class on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M7, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Independent Study for M7 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(M9, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Independent Study for M9 on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+print(kable(other, "latex", booktabs = TRUE, longtable = TRUE, caption = paste("Independent Study for Other Term on", todays.date, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")))
+} else {cat("No Classes for this Division")}
+```
+\end{landscape}
+
+```{r comment=NA, include=FALSE}
+library(openxlsx)
+pull$TotalEnroll<-pull$Enrolled+pull$Waitlist
+pull$TotalHours<-pull$TotalEnroll*pull$CreditHours
+list_of_datasets <- list("Adult Education"=ae.table, "Allied Health" = ah.table, "Applied Technology" = at.table, "Humanities and Social Science" = hs.table, "Math and Business" = mb.table, "Nursing" = nu.table, "Physical and Life Science" = ps.table, "SICCM" = si.table, "Workforce Development" = wd.table, "Independent Study" = id.table, "All" = pull)
+#Network storage remove to write to network
+write.xlsx(list_of_datasets, file=paste0("G:\\Institutional Research\\From James\\enrollment pull\\daily reports\\summer daily report ", format(Sys.Date(), "%m-%d"), ".xlsx"))
+#Local Storage remove to write local
+write.xlsx(list_of_datasets, file=paste0("summer daily report ", format(Sys.Date(), "%m-%d"), ".xlsx"))
+```
+
+```{r eval=FALSE, comment=NA, include=FALSE}
+summer<-read.csv("G:\\Institutional Research\\From James\\enrollment pull\\falltracking.csv")
+col_names <- intersect(names(pull), names(summer))
+write<-merge(pull, summer, by=col_names, all.x=TRUE)
+write$Today<-write$Enrolled+write$Waitlist
+write<-write[,-c(11,12)]
+names(write)[length(names(write))]<-todays.date
+write.csv(write, file=paste0('G:\\Institutional Reseah\\From James\\enrollment pull\\summer', format(Sys.Date(),"%m-%d"), '.csv'))
+```
+

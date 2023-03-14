@@ -1,0 +1,30 @@
+---
+title: "Student Success Model"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+
+```{r Load and Clean Data}
+library(tidyverse)
+data<-read.csv("data.csv", header=TRUE)
+#Remove audits
+data.clean<-data %>% filter(Grade != 'AU')
+data.clean<-data.clean %>% filter(Grade != 'R')
+data.clean$Grade<-str_replace_all(data.clean$Grade, c("A" = "1", "B" ="1", "CR" = "1", "D" = "0", "E" = "0", "F" = "0", "INC" = "0", "P" = "1", "W" = "0", "C" = "1"))
+data.clean$Grade<-as.numeric(data.clean$Grade)
+data.clean<-na_if(data.clean, " ")
+data.clean<-na_if(data.clean, "NULL")
+data.clean$Repeat <- ifelse(is.na(data.clean$Repeat),0,1)
+data.clean$`Class Code` <-sub("^6+","", data.clean$`Class Code`)
+data.clean$`Class Code` <- str_squish(data.clean$`Class Code`)
+data.clean$Section<-str_sub(data.clean$`Class Code`, -2, -1)
+data.clean$Class<-str_sub(data.clean$`Class Code`, 1, -3)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

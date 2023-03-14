@@ -1,0 +1,288 @@
+---
+title: "Weekly Headcount and Credit Hours Weekly Report Spring 2023"
+
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+author: "Office of Institutional Effectiveness and Research"
+geometry: margin=1cm
+output:
+  pdf_document: default
+header-includes:
+  - \usepackage{titling}
+  - \pretitle{\begin{center}
+    \includegraphics[width=2in,height=2in]{jalclogo.jpg}\LARGE\\}
+  - \posttitle{\end{center}}
+  
+---
+
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(readxl)
+spring <- read_excel("~/spring data comparison.xlsx")
+comp<-read_excel("~/spring data comparison.xlsx", 
+    sheet = "unduplicated")
+winter<-read_excel("~/spring data comparison.xlsx", 
+    sheet = "Winter")
+```
+
+\newpage
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(ggrepel)
+library(tidyverse)
+library(kableExtra)
+library(scales)
+library(gghighlight)
+start.date<-as.Date("2022-10-17")
+todays.date<-Sys.Date()
+current.week<-as.numeric(floor(difftime(todays.date, start.date, units="weeks")))
+table.overview<-spring %>% filter(Week == current.week)
+te<-table.overview[,c(2:3,5,7:8)]
+head.total<-colSums(te[,2:4])
+head.total[4]<-head.total[3]/head.total[1]
+head.total<-c("Total", head.total)
+te<-rbind(te, head.total)
+te$`Percent Change Headcount`<-as.numeric(te$`Percent Change Headcount`)
+te$`Percent Change Headcount`<-percent(te$`Percent Change Headcount`, accuracy = 0.1)
+te<-kable(te, "latex", booktabs = TRUE, caption = paste("Overview of Course Headcount (Duplicated) for all divisions for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+t<-table.overview[,c(2,4,6,9:10)]
+t.total<-colSums(t[,2:4])
+t.total[4]<-t.total[3]/t.total[1]
+t.total<-c("Total", t.total)
+t<-rbind(t, t.total)
+t$`Percent Change Hour`<-as.numeric(t$`Percent Change Hour`)
+t$`Percent Change Hour`<-percent(t$`Percent Change Hour`, accuracy = 0.1)
+th<-kable(t, "latex", booktabs = TRUE, caption = paste("Overview of Credit Hours for all divisions for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+sum.overview<-spring %>% filter(Week <= current.week) %>% group_by(Week) %>% summarise(Headcount22 = sum(E22), Headcount23 = sum(E23), Hour22 = sum(H22), Hour23 = sum(H23))
+data1<-colSums(table.overview[,3:6])
+comp.current<-t(comp %>% filter(Week == current.week))
+Difference<-c(comp.current[3,1]-comp.current[2,1], data1[3]-data1[1], data1[4]-data1[2])
+Last<-c(comp.current[2,1], data1[1], data1[2])
+Current<-c(comp.current[3,1], data1[3], data1[4])
+summary.table<-rbind(Current, Last, Difference)
+colnames(summary.table)<-c("Headcount", "Course Enrollment", "Credit Hours")
+ts<-kable(summary.table, "latex", booktabs = TRUE, caption = paste("Overview of Total Headcount, Course Enrollment, and Credit Hours for Week", current.week, sep = " ")) %>% kable_styling(latex_options = c("hold_position", "repeat_header", "hold_position"))
+wt<-kable(winter, "latex", booktabs = TRUE, caption = ("Winter session Course Enrollment and Credit Hours")) %>% kable_styling(latex_options = c("hold_position", "repeat_header", "hold_position"))
+```
+
+
+
+# Overall
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ts
+te
+th
+pivot_longer(sum.overview[,1:3], names_to = "Headcount", values_to = "number", cols = Headcount22:Headcount23) %>% ggplot(aes(x=Week, y=number, col=Headcount)) + geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(sum.overview[,c(1,4:5)], names_to = "Credits", values_to = "number", cols = Hour22:Hour23) %>% ggplot(aes(x=Week, y=number, col=Credits)) + geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023") + labs(x="Week", y="Credit Hours")
+```
+
+\newpage
+
+# Allied Health
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+allied<-spring %>% filter(Division == "Allied Health" & Week <= current.week)
+allied$`Percent Change Headcount`<-percent(allied$`Percent Change Headcount`, accuracy = 0.1)
+allied$`Percent Change Hour`<-percent(allied$`Percent Change Hour`, accuracy = 0.1)
+allied.headcount<-allied[,c(1:3,5,7:8)]
+allied.hours<-allied[,c(1:2, 4,6,9:10)]
+ah<-kable(allied.headcount, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of Allied Health for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+ac<-kable(allied.hours, "latex", booktabs = TRUE, caption = paste("Credit Hours of Allied Health for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+ah
+ac
+pivot_longer(allied.headcount[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "Allied Health") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(allied.hours[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "Allied Health") + labs(x="Week", y="Credit Hours")
+```
+
+
+
+\newpage
+
+# Applied Technology
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+applied<-spring %>% filter(Division == "Applied Technology" & Week <= current.week)
+applied$`Percent Change Headcount`<-percent(applied$`Percent Change Headcount`, accuracy = 0.1)
+applied$`Percent Change Hour`<-percent(applied$`Percent Change Hour`, accuracy = 0.1)
+applied.headcount<-applied[,c(1:3,5,7:8)]
+applied.hours<-applied[,c(1:2, 4,6,9:10)]
+aph<-kable(applied.headcount, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of Applied Technology for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+apc<-kable(applied.hours, "latex", booktabs = TRUE, caption = paste("Credit Hours of Applied Technology for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+aph
+apc
+pivot_longer(applied.headcount[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "Applied Technology") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(applied.hours[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "Applied Technology") + labs(x="Week", y="Credit Hours")
+```
+
+
+\newpage
+
+# Humanitites and Social Sciences
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+hum<-spring %>% filter(Division == "Humanities and Social Sciences" & Week <= current.week)
+hum$`Percent Change Headcount`<-percent(hum$`Percent Change Headcount`, accuracy = 0.1)
+hum$`Percent Change Hour`<-percent(hum$`Percent Change Hour`, accuracy = 0.1)
+hum.head<-hum[,c(1:3,5,7:8)]
+hum.hours<-hum[,c(1:2, 4,6,9:10)]
+hh<-kable(hum.head, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of Humanities and Social Sciences for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+hc<-kable(hum.hours, "latex", booktabs = TRUE, caption = paste("Credit Hours of Humanities and Social Sciences for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+hh
+hc
+pivot_longer(hum.head[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "Humanities and Social Sciences") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(hum.hours[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "Humanities and Social Sciences") + labs(x="Week", y="Credit Hours")
+```
+
+
+
+\newpage
+
+# Business, Computer Science, and Math
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mb<-spring %>% filter(Division == "Business, Computer Science, and Math" & Week <= current.week)
+mb$`Percent Change Headcount`<-percent(mb$`Percent Change Headcount`, accuracy = 0.1)
+mb$`Percent Change Hour`<-percent(mb$`Percent Change Hour`, accuracy = 0.1)
+mb.head<-mb[,c(1:3,5,7:8)]
+mb.hours<-mb[,c(1:2, 4,6,9:10)]
+mh<-kable(mb.head, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of Business, Computer Science, and Math for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+mc<-kable(mb.hours, "latex", booktabs = TRUE, caption = paste("Credit Hours of Business, Computer Science, and Math for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+mh
+mc
+pivot_longer(mb.head[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "Business, Computer Science, and Math") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(mb.hours[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "Business, Computer Science, and Math") + labs(x="Week", y="Credit Hours")
+```
+
+
+\newpage
+
+# Nursing
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+nurse<-spring %>% filter(Division == "Nursing" & Week <= current.week)
+nurse$`Percent Change Headcount`<-percent(nurse$`Percent Change Headcount`, accuracy = 0.1)
+nurse$`Percent Change Hour`<-percent(nurse$`Percent Change Hour`, accuracy = 0.1)
+nurse.head<-nurse[,c(1:3,5,7:8)]
+nurse.hours<-nurse[,c(1:2, 4,6,9:10)]
+nh<-kable(nurse.head, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of Nursing for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+nc<-kable(nurse.hours, "latex", booktabs = TRUE, caption = paste("Credit Hours of Nursing for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+nh
+nc
+pivot_longer(nurse.head[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "Nursing") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(nurse.hours[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "Nursing") + labs(x="Week", y="Credit Hours")
+```
+
+
+
+\newpage
+
+# Life and Physical Science
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ls<-spring %>% filter(Division == "Life and Physical Science" & Week <= current.week)
+ls$`Percent Change Headcount`<-percent(ls$`Percent Change Headcount`, accuracy = 0.1)
+ls$`Percent Change Hour`<-percent(ls$`Percent Change Hour`, accuracy = 0.1)
+ls.head<-ls[,c(1:3,5,7:8)]
+ls.hour<-ls[,c(1:2, 4,6,9:10)]
+lh<-kable(ls.head, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of Life and Physical Science for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+lc<-kable(ls.hour, "latex", booktabs = TRUE, caption = paste("Credit Hours of Life and Physical Science for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+lh
+lc
+pivot_longer(ls.head[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "Life and Physical Science") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(ls.hour[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "Life and Physical Science") + labs(x="Week", y="Credit Hours")
+```
+
+
+\newpage
+
+# SICCM
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+si<-spring %>% filter(Division == "SICCM" & Week <= current.week)
+si$`Percent Change Headcount`<-percent(si$`Percent Change Headcount`, accuracy = 0.1)
+si$`Percent Change Hour`<-percent(si$`Percent Change Hour`, accuracy = 0.1)
+si.head<-si[,c(1:3,5,7:8)]
+si.hour<-si[,c(1:2, 4,6,9:10)]
+sh<-kable(si.head, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of SICCM for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+sc<-kable(si.hour, "latex", booktabs = TRUE, caption = paste("Credit Hours of SICCM for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+sh
+sc
+pivot_longer(si.head[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "SICCM") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(si.hour[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "SICCM") + labs(x="Week", y="Credit Hours")
+```
+
+
+\newpage
+
+# Workforce Development
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+wd<-spring %>% filter(Division == "Workforce Development" & Week <= current.week)
+wd$`Percent Change Headcount`<-percent(wd$`Percent Change Headcount`, accuracy = 0.1)
+wd$`Percent Change Hour`<-percent(wd$`Percent Change Hour`, accuracy = 0.1)
+wd.head<-wd[,c(1:3,5,7:8)]
+wd.hour<-wd[,c(1:2, 4,6,9:10)]
+wh<-kable(wd.head, "latex", booktabs = TRUE, caption = paste("Headcount (Duplicated) of Workforce Development for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+wc<-kable(wd.hour, "latex", booktabs = TRUE, caption = paste("Credit Hours of Workforce Development for week", current.week, sep = " ")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down", "hold_position"))
+wh
+wc
+pivot_longer(wd.head[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=E22:E23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Headcount Comparision Spring 2022 to Spring 2023", subtitle = "Workforce Development") + labs(x="Week", y="Headcount")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+pivot_longer(wd.hour[,c(1,3:4)], names_to = "Year", values_to = "Number", cols=H22:H23) %>% ggplot(aes(x=Week, y=Number, col=Year))+ geom_point() + geom_line()+scale_x_continuous(breaks= seq(2,current.week, by=1)) + labs(title="Credit Hour Comparision Spring 2022 to Spring 2023", subtitle = "Workforce Development") + labs(x="Week", y="Credit Hours")
+```
+
+
+\newpage
+
+
+# Winter Session
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+wt
+```
+

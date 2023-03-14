@@ -1,0 +1,96 @@
+---
+title: "Applied Technologies SP22 Course Data Report Sentiment Analysis"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(readxl)
+completion <- read_excel("~//SP22 Course Data Report Completion Tracking.xlsx")
+library(tidyverse)
+completion <-completion %>% filter(Department == "Applied Technologies")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+q1<-completion$`Question 1`
+q4<-completion$`Question 4`
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tm)
+library(SnowballC)
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>10)
+barplot(et, las=2, col=rainbow(50), main="Quesstion 1")
+wc<-sort(rowSums(tdm), decreasing = TRUE)
+set.seed(42)
+library(wordcloud)
+wordcloud(words=names(wc), freq=wc, max.words=150, random.order=FALSE, min.freq=2, colors = brewer.pal(8, 'Dark2'),scale = c(5, 0.3),rot.per = 0.7)
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(syuzhet)
+library(lubridate)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(dplyr)
+et<-iconv(q1)
+et<-get_nrc_sentiment(et)
+barplot(colSums(et), las = 2, col = rainbow(10), ylab = 'Count', main = 'Sentiment Scores Question 1')
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tm)
+library(SnowballC)
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>10)
+barplot(et, las=2, col=rainbow(50), main="Question 4")
+wc<-sort(rowSums(tdm), decreasing = TRUE)
+set.seed(42)
+library(wordcloud)
+wordcloud(words=names(wc), freq=wc, max.words=150, random.order=FALSE, min.freq=2, colors = brewer.pal(8, 'Dark2'),scale = c(5, 0.3),rot.per = 0.7)
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(syuzhet)
+library(lubridate)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(dplyr)
+et<-iconv(q4)
+et<-get_nrc_sentiment(et)
+barplot(colSums(et), las = 2, col = rainbow(10), ylab = 'Count', main = 'Sentiment Scores Question 4')
+```
+
+

@@ -1,0 +1,538 @@
+---
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+\newpage
+
+\pagenumbering{gobble}
+
+# College Wide
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tm)
+library(SnowballC)
+library(readxl)
+library(tidyverse)
+library(wordcloud)
+library(syuzhet)
+library(lubridate)
+library(scales)
+library(reshape2)
+SP22 <- read_excel("~/evals/SP22 Course Data Report Completion Tracking.xlsx")
+
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+q1<-SP22$`Question 1`
+q4<-SP22$`Question 4`
+
+```
+
+## Words Removed
+
+For this analysis, common stop words were removed. For a complete list, please go to: https://github.com/igorbrigadir/stopwords/blob/master/en/terrier.txt
+
+Other words removed due to common use in surveys were:
+students, get, like, will, pcr, ccr, goal, pgr, class, complete, course, none, yes, and however
+
+## First Question
+
+After the review and analysis of data, what are you key observations? Have you achieved the Goal of 70% for Productive Grade Rate (PGR) and Course Completion Rate (CCR)? If yes, what is your new Goal for your PGR and CCR?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>20)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 1 Individual Word Count")
+et<-get_nrc_sentiment(q1)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 1 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 1 Histogram of response length") + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+\newpage
+
+## Fourth Question
+
+To achieve or better your Goal in (Q1), what other improvement(s) would you consider now?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>20)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 4 Individual Word Count")
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 4 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 4 Histogram of response length")  + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+\newpage
+
+# Allied Health
+
+## Words Removed
+
+For this analysis, common stop words were removed. For a complete list, please go to: https://github.com/igorbrigadir/stopwords/blob/master/en/terrier.txt
+
+Other words removed due to common use in surveys were:
+students, get, like, will, pcr, ccr, goal, pgr, class, complete, course, none, yes, and however
+
+## First Question
+
+After the review and analysis of data, what are you key observations? Have you achieved the Goal of 70% for Productive Grade Rate (PGR) and Course Completion Rate (CCR)? If yes, what is your new Goal for your PGR and CCR?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+AH  <-SP22 %>% filter(Department == "Allied Health & Public Service")
+q1<-AH$`Question 1`
+q4<-AH$`Question 4`
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>3)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 1 Individual Word Count")
+set.seed(42)
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 1 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 1 Histogram of response length") + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+\newpage
+
+## Fourth Question
+
+To achieve or better your Goal in (Q1), what other improvement(s) would you consider now?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will',  'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>4)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 4 Individual Word Count")
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 4 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 4 Histogram of response length")  + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+\newpage
+
+# Applied Technologies
+
+## Words Removed
+
+For this analysis, common stop words were removed. For a complete list, please go to: https://github.com/igorbrigadir/stopwords/blob/master/en/terrier.txt
+
+Other words removed due to common use in surveys were:
+students, get, like, will, pcr, ccr, goal, pgr, class, complete, course, none, yes, and however
+
+## First Question
+
+After the review and analysis of data, what are you key observations? Have you achieved the Goal of 70% for Productive Grade Rate (PGR) and Course Completion Rate (CCR)? If yes, what is your new Goal for your PGR and CCR?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+AH  <-SP22 %>% filter(Department == "Applied Technologies")
+q1<-AH$`Question 1`
+q4<-AH$`Question 4`
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>5)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 1 Individual Word Count")
+et<-get_nrc_sentiment(q1)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 1 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 1 Histogram of response length") + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+\newpage
+
+## Fourth Question
+
+To achieve or better your Goal in (Q1), what other improvement(s) would you consider now?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will',  'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>5)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 4 Individual Word Count")
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 4 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 4 Histogram of response length")  + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+\newpage
+
+# Business, Computer Science & Math
+
+## Words Removed
+
+For this analysis, common stop words were removed. For a complete list, please go to: https://github.com/igorbrigadir/stopwords/blob/master/en/terrier.txt
+
+Other words removed due to common use in surveys were:
+students, get, like, will, pcr, ccr, goal, pgr, class, complete, course, none, yes, and however
+
+## First Question
+
+After the review and analysis of data, what are you key observations? Have you achieved the Goal of 70% for Productive Grade Rate (PGR) and Course Completion Rate (CCR)? If yes, what is your new Goal for your PGR and CCR?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+AH  <-SP22 %>% filter(Department == "Business, Computer Science & Math")
+q1<-AH$`Question 1`
+q4<-AH$`Question 4`
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>5)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 1 Individual Word Count")
+et<-get_nrc_sentiment(q1)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 1 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 1 Histogram of response length") + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+
+\newpage
+
+
+## Fourth Question
+
+To achieve or better your Goal in (Q1), what other improvement(s) would you consider now?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will',  'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>5)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 4 Individual Word Count")
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 4 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 4 Histogram of response length")  + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+
+
+\newpage
+
+# Communication, Humanities & Social Science
+
+## Words Removed
+
+For this analysis, common stop words were removed. For a complete list, please go to: https://github.com/igorbrigadir/stopwords/blob/master/en/terrier.txt
+
+Other words removed due to common use in surveys were:
+students, get, like, will, pcr, ccr, goal, pgr, class, complete, course, none, yes, and however
+
+## First Question
+
+After the review and analysis of data, what are you key observations? Have you achieved the Goal of 70% for Productive Grade Rate (PGR) and Course Completion Rate (CCR)? If yes, what is your new Goal for your PGR and CCR?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+AH  <-SP22 %>% filter(Department == "Communication, Humanities & Social Science")
+q1<-AH$`Question 1`
+q4<-AH$`Question 4`
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>5)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 1 Individual Word Count")
+et<-get_nrc_sentiment(q1)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 1 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 1 Histogram of response length") + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+
+\newpage
+
+## Fourth Question
+
+To achieve or better your Goal in (Q1), what other improvement(s) would you consider now?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will',  'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>5)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 4 Individual Word Count")
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 4 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 4 Histogram of response length")  + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+\newpage
+
+# Life & Physical Science
+
+## Words Removed
+
+For this analysis, common stop words were removed. For a complete list, please go to: https://github.com/igorbrigadir/stopwords/blob/master/en/terrier.txt
+
+Other words removed due to common use in surveys were:
+students, get, like, will, pcr, ccr, goal, pgr, class, complete, course, none, yes, and however
+
+## First Question
+
+After the review and analysis of data, what are you key observations? Have you achieved the Goal of 70% for Productive Grade Rate (PGR) and Course Completion Rate (CCR)? If yes, what is your new Goal for your PGR and CCR?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+AH  <-SP22 %>% filter(Department == "Life & Physical Science")
+q1<-AH$`Question 1`
+q4<-AH$`Question 4`
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>4)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 1 Individual Word Count")
+et<-get_nrc_sentiment(q1)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 1 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 1 Histogram of response length") + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+
+\newpage
+
+
+## Fourth Question
+
+To achieve or better your Goal in (Q1), what other improvement(s) would you consider now?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will',  'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>5)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 4 Individual Word Count")
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 4 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 4 Histogram of response length")  + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+
+\newpage
+
+# Nursing
+
+## Words Removed
+
+For this analysis, common stop words were removed. For a complete list, please go to: https://github.com/igorbrigadir/stopwords/blob/master/en/terrier.txt
+
+Other words removed due to common use in surveys were:
+students, get, like, will, pcr, ccr, goal, pgr, class, complete, course, none, yes, and however
+
+## First Question
+
+After the review and analysis of data, what are you key observations? Have you achieved the Goal of 70% for Productive Grade Rate (PGR) and Course Completion Rate (CCR)? If yes, what is your new Goal for your PGR and CCR?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+AH  <-SP22 %>% filter(Department == "Nursing")
+q1<-AH$`Question 1`
+q4<-AH$`Question 4`
+corpus<-iconv(q1)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will', 'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>2)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 1 Invidiual Word Count")
+et<-get_nrc_sentiment(q1)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 1 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 1 Histogram of response length") + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```
+
+
+\newpage
+
+## Fourth Question
+
+To achieve or better your Goal in (Q1), what other improvement(s) would you consider now?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+corpus<-iconv(q4)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('students', 'ticket', 'get', 'like', 'will',  'pcr', 'ccr', 'goal', 'pgr', 'class', 'complete', 'course', 'none', 'yes', 'however'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>2)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las=2, col=rainbow(50), main="Question 4 Individual Word Count")
+et<-get_nrc_sentiment(q4)
+et<-colSums(et)
+et<-sort(et, decreasing = TRUE)
+barplot(et, las = 2, col = rainbow(10), ylab = 'Count', main = 'Question 4 Sentiment Scores')
+length<-colSums(tdm)
+ggplot() + aes(length) + geom_histogram(binwidth = 1, col="black", fill="blue") + labs(x="Response length minus stop words and common words", y="Frequency", title ="Question 4 Histogram of response length")  + theme(plot.title = element_text(size=16, hjust=0.5, face="bold"))
+```

@@ -1,0 +1,94 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(readxl)
+survey <- read_excel("~/time series madness/exit.xlsx")
+```
+
+```{r}
+library(tm)
+library(SnowballC)
+corpus<-iconv(survey)
+corpus<-Corpus(VectorSource(corpus))
+corpus<-tm_map(corpus, tolower)
+corpus<-tm_map(corpus, removePunctuation)
+corpus<-tm_map(corpus, removeNumbers)
+clean <- tm_map(corpus, removeWords, stopwords('english'))
+clean <- tm_map(clean, removeWords, c('exit', 'ticket', 'get', 'like', 'will'))
+clean <- tm_map(clean, stemDocument)
+clean <- tm_map(clean, stripWhitespace)
+tdm<-TermDocumentMatrix(clean)
+tdm<-as.matrix(tdm)
+et<-rowSums(tdm)
+et<-subset(et, et>10)
+barplot(et, las=2, col=rainbow(50), main="Exit Ticket")
+wc<-sort(rowSums(tdm), decreasing = TRUE)
+set.seed(42)
+library(wordcloud)
+wordcloud(words=names(wc), freq=wc, max.words=150, random.order=FALSE, min.freq=2, colors = brewer.pal(8, 'Dark2'),scale = c(5, 0.3),rot.per = 0.7)
+library(wordcloud2)
+wc2<-data.frame(names(wc), wc)
+export<-wordcloud2(wc2, size = 0.7, shape = 'star', rotateRatio = 0.5, minSize = 1)
+library(htmlwidgets)
+saveWidget(export,"export.html",selfcontained = F)
+library(webshot)
+webshot("export.html","et.png",vwidth = 1992, vheight = 1744, delay =10)
+
+```
+
+```{r}
+library(syuzhet)
+library(lubridate)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(dplyr)
+et<-iconv(survey)
+et<-get_nrc_sentiment(et)
+barplot(colSums(et), las = 2, col = rainbow(10), ylab = 'Count', main = 'Sentiment Scores Exit Ticket')
+```
+
+```{r}
+likert.words<-likert.long
+likert.words$value<-factor(likert.long$value, levels = c(1, 2, 3, 4, 5), 
+       labels = c("Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"))
+table.likert<-table(likert.words$value, likert.words$variable)
+bubble.likert<-melt(table.likert)
+ggplot(bubble.likert, aes(x = Var2, y = Var1, size=value)) + geom_point(col="blue") + theme_classic() + scale_size(range = c(.1, 24), name="Number who chose")
+```
+
+```{r}
+library(tm)
+library(SnowballC)
+library(wordcloud2)
+library(htmlwidgets)
+library(webshot)
+library(syuzhet)
+q1new<-read_file('core.txt')
+q1c<-iconv(q1new)
+q1c<-Corpus(VectorSource(q1c))
+q1c<-tm_map(q1c, tolower)
+q1c<-tm_map(q1c, removePunctuation)
+q1c<-tm_map(q1c, removeNumbers)
+q1cclean <- tm_map(q1c, removeWords, stopwords('english'))
+q1cclean <- tm_map(q1cclean, removeWords, c('core', 'value'))
+q1cclean <- tm_map(q1cclean, stemDocument)
+q1cclean <- tm_map(q1cclean, stripWhitespace)
+q1ctdm<-TermDocumentMatrix(q1cclean)
+q1ctdm<-as.matrix(q1ctdm)
+q1cnew<-rowSums(q1ctdm)
+q1cnew<-subset(q1cnew, q1cnew>10)
+barplot(q1cnew, las=2, col=rainbow(50), main="Core Values")
+wcq1c<-sort(rowSums(q1ctdm), decreasing = TRUE)
+wcq1c<-data.frame(names(wcq1c), wcq1c)
+q1cexport<-wordcloud2(wcq1c, size = 0.7, shape = 'pentagon', rotateRatio = 0.5, minSize = 1)
+saveWidget(q1cexport,"q1cexport.html",selfcontained = F)
+webshot("q1cexport.html","pentagon.png",vwidth = 1992, vheight = 1744, delay =10)
+q1sc<-iconv(q1new)
+sq1c<-get_nrc_sentiment(q1sc)
+barplot(colSums(sq1c), las = 2, col = rainbow(10), ylab = 'Count', main = 'Sentiment Scores Core Values')
+```
+
